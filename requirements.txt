@@ -1,0 +1,6 @@
+yfinance>=0.2.36
+feedparser>=6.0.10
+transformers>=4.38.0
+torch>=2.2.0
+requests>=2.31.0
+pandas>=2.1.0

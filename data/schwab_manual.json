@@ -1,0 +1,15 @@
+{
+  "_comment": "Actualizar mensualmente. Niveles: Most Favored, More Favored, Neutral, Less Favored, Least Favored",
+  "_last_updated": "2026-05-15",
+  "XLK":  "Neutral",
+  "XLF":  "More Favored",
+  "XLV":  "Most Favored",
+  "XLY":  "Less Favored",
+  "XLC":  "Most Favored",
+  "XLI":  "Most Favored",
+  "XLP":  "Least Favored",
+  "XLE":  "Neutral",
+  "XLU":  "Neutral",
+  "XLRE": "Less Favored",
+  "XLB":  "More Favored"
+}

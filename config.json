@@ -1,0 +1,113 @@
+{
+  "sentiment": {
+    "threshold_bullish": 0.15,
+    "threshold_bearish": -0.15,
+    "model": "ProsusAI/finbert",
+    "min_articles_for_confidence": 8,
+    "max_text_length": 512
+  },
+  "news": {
+    "hours_lookback": 24,
+    "max_articles_per_sector": 25,
+    "rss_timeout_seconds": 10,
+    "rss_retry_attempts": 2
+  },
+  "prices": {
+    "ytd_start": "2026-01-01",
+    "pe_prefer": "forward",
+    "history_period_6m": "6mo",
+    "history_period_1y": "1y"
+  },
+  "rss_feeds": {
+    "yahoo_template":        "https://finance.yahoo.com/rss/headline?s={ticker}",
+    "cnbc":                  "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+    "marketwatch":           "https://feeds.marketwatch.com/marketwatch/topstories/",
+    "google_news_template":  "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
+  },
+  "sectors": [
+    {
+      "ticker": "XLK",
+      "sector_name": "Tecnología",
+      "sector_name_en": "Information Technology",
+      "market_weight_default": 31.0,
+      "keywords": ["AAPL", "NVDA", "MSFT", "semiconductor", "AI chip", "artificial intelligence", "Broadcom", "AMD", "tech stocks"]
+    },
+    {
+      "ticker": "XLF",
+      "sector_name": "Financiero",
+      "sector_name_en": "Financials",
+      "market_weight_default": 13.7,
+      "keywords": ["JPM", "JPMorgan", "BAC", "Federal Reserve", "Fed rates", "banking", "insurance", "Visa", "Mastercard", "financial stocks"]
+    },
+    {
+      "ticker": "XLV",
+      "sector_name": "Salud",
+      "sector_name_en": "Health Care",
+      "market_weight_default": 11.1,
+      "keywords": ["LLY", "Eli Lilly", "UNH", "UnitedHealth", "FDA", "pharma", "biotech", "healthcare", "AbbVie", "Merck"]
+    },
+    {
+      "ticker": "XLY",
+      "sector_name": "Cons. Discrecional",
+      "sector_name_en": "Consumer Discretionary",
+      "market_weight_default": 10.3,
+      "keywords": ["AMZN", "Amazon", "TSLA", "Tesla", "retail sales", "consumer spending", "Home Depot", "McDonald's", "BKNG"]
+    },
+    {
+      "ticker": "XLC",
+      "sector_name": "Comunicaciones",
+      "sector_name_en": "Communication Services",
+      "market_weight_default": 9.2,
+      "keywords": ["META", "Alphabet", "GOOG", "Netflix", "NFLX", "streaming", "social media", "AT&T", "digital advertising"]
+    },
+    {
+      "ticker": "XLI",
+      "sector_name": "Industriales",
+      "sector_name_en": "Industrials",
+      "market_weight_default": 8.5,
+      "keywords": ["GE Aerospace", "RTX", "Caterpillar", "CAT", "defense spending", "aerospace", "manufacturing", "Honeywell", "Eaton"]
+    },
+    {
+      "ticker": "XLP",
+      "sector_name": "Cons. Básico",
+      "sector_name_en": "Consumer Staples",
+      "market_weight_default": 6.0,
+      "keywords": ["Procter Gamble", "Costco", "COST", "PepsiCo", "Coca-Cola", "Walmart", "WMT", "consumer staples", "household goods"]
+    },
+    {
+      "ticker": "XLE",
+      "sector_name": "Energía",
+      "sector_name_en": "Energy",
+      "market_weight_default": 3.5,
+      "keywords": ["XOM", "ExxonMobil", "CVX", "Chevron", "oil price", "crude oil", "OPEC", "ConocoPhillips", "natural gas", "energy stocks"]
+    },
+    {
+      "ticker": "XLU",
+      "sector_name": "Utilities",
+      "sector_name_en": "Utilities",
+      "market_weight_default": 2.6,
+      "keywords": ["NextEra", "NEE", "Duke Energy", "DUK", "power grid", "electricity demand", "utilities stocks", "AEP", "Exelon"]
+    },
+    {
+      "ticker": "XLRE",
+      "sector_name": "Inmobiliario",
+      "sector_name_en": "Real Estate",
+      "market_weight_default": 2.2,
+      "keywords": ["REIT", "Prologis", "PLD", "American Tower", "AMT", "commercial real estate", "office market", "Equinix", "Simon Property"]
+    },
+    {
+      "ticker": "XLB",
+      "sector_name": "Materiales",
+      "sector_name_en": "Materials",
+      "market_weight_default": 2.0,
+      "keywords": ["Linde", "LIN", "Sherwin-Williams", "SHW", "copper price", "gold price", "mining stocks", "Freeport", "Newmont", "chemicals"]
+    }
+  ],
+  "indices": ["SPY", "QQQ", "IWM"],
+  "output": {
+    "json_path": "data/output.json",
+    "js_path":   "data/data.js",
+    "cache_dir": "data/cache",
+    "news_in_output": 5
+  }
+}
