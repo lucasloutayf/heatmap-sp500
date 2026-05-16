@@ -1,0 +1,52 @@
+name: S&P 500 Heatmap — Pipeline
+
+on:
+  schedule:
+    # 21:30 UTC = 4:30 PM ET (invierno/EST) | 5:30 PM ET (verano/EDT)
+    # Mercado cierra 4:00 PM ET — mínimo 30 min de margen en ambas zonas horarias
+    - cron: '30 21 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    environment: production
+
+    env:
+      HF_HUB_CACHE: /home/runner/.cache/huggingface/hub
+      PYTHONIOENCODING: utf-8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache HuggingFace models
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HF_HUB_CACHE }}
+          key: hf-${{ hashFiles('config.json') }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline
+        run: python run_all.py
+        # sys.exit(1) on status=failed cancels the upload step
+
+      - name: Upload output.json to Supabase Storage
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl -fsS -X PUT \
+            "${SUPABASE_URL}/storage/v1/object/heatmap-data/output.json" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "x-upsert: true" \
+            -H "Cache-Control: no-cache, no-store, must-revalidate" \
+            --data-binary @data/output.json
