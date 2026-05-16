@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Setup
+
+```powershell
+# Create and activate virtualenv (Windows)
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+First run downloads the FinBERT model (~440 MB) from HuggingFace. Subsequent runs use the local cache.
+
 ## Commands
 
 ```powershell
@@ -11,8 +22,11 @@ $env:PYTHONIOENCODING = "utf-8"; python run_all.py
 # Or via batch file (with pause at end)
 .\actualizar.bat
 
-# Run unit tests
+# Run all unit tests
 python -m unittest tests.test_aggregate -v
+
+# Run a single test method
+python -m unittest tests.test_aggregate.TestWriteOutputsNoDataJs.test_output_json_is_valid -v
 
 # Serve HTML locally for development (needs internet — HTML fetches from Supabase)
 python -m http.server 8000
@@ -35,13 +49,30 @@ The pipeline has four sequential steps, all orchestrated by `run_all.py`:
 
 4. **`pipeline/aggregate.py`** — merges all three results + `data/schwab_manual.json` → writes **only** `data/output.json` (human-readable full data).
 
-**`config.json`** is the single source of truth: thresholds, model name, RSS URLs, sector tickers/keywords, output paths. Contains `output` section with `json_path`, `cache_dir`, `news_in_output` (no more `js_path`).
+**`config.json`** is the single source of truth: thresholds, model name, RSS URLs, sector tickers/keywords, output paths. Contains `output` section with `json_path`, `cache_dir`, `news_in_output`.
 
-**`data/schwab_manual.json`** holds monthly manual Schwab sector ratings. Keys starting with `_` are ignored (used for comments/metadata).
+**`data/schwab_manual.json`** holds monthly manual Schwab sector ratings. Update monthly. Valid values: `Most Favored`, `More Favored`, `Neutral`, `Less Favored`, `Least Favored`. Keys starting with `_` are ignored (used for comments/metadata).
+
+### output.json schema
+
+The HTML (`docs/sp500-heatmap.html`) consumes this file via `fetch()` from Supabase Storage:
+
+```
+{
+  "meta": { updated_at, market_date, articles_analyzed, run_status, warnings[], sources_used },
+  "indices": { "SPY": { ytd, daily }, "QQQ": {...}, "IWM": {...} },
+  "sectors": [ { ticker, sector_name, price, daily_change, ytd, six_month, one_year,
+                  pe_fwd, pe_type, div_yield, p52_high, p52_low, schwab_rating,
+                  sentiment: { score, label, confidence, pos_pct, neg_pct, neu_pct, available },
+                  data_quality: { missing_fields[], sentiment_available, price_data_fresh, ... },
+                  news: [ { title, source, url, published, summary, sentiment_label, sentiment_score } ]
+                } ]
+}
+```
 
 ### Cloud Deployment
 
-- **`.github/workflows/pipeline.yml`** — runs pipeline daily at 21:30 UTC, Monday–Friday. On success, uploads `data/output.json` to Supabase Storage bucket `heatmap-data` (public access).
+- **`.github/workflows/pipeline.yml`** — runs pipeline daily at 21:30 UTC, Monday–Friday. On success, uploads `data/output.json` to Supabase Storage bucket `heatmap-data` (public access). Requires GitHub Actions secrets: `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (set in the `production` environment).
 - **`docs/sp500-heatmap.html`** — hosted on GitHub Pages. Fetches `output.json` from Supabase Storage public URL via `fetch()` with cache-busting (`?v=timestamp` + `cache: 'no-store'`). No local file dependency.
 - **`actualizar.bat`** — manual local run for testing. Sets `PYTHONIOENCODING=utf-8` to prevent Windows encoding errors.
 
@@ -51,5 +82,6 @@ The pipeline has four sequential steps, all orchestrated by `run_all.py`:
 - `PYTHONIOENCODING=utf-8` is required on Windows to avoid encoding errors with `→` and `⚠` characters. Set in `actualizar.bat` and the GitHub Actions workflow.
 - `forwardPE` is not available for ETFs in yfinance — the code silently falls back to `trailingPE`. This is expected behavior, not a bug.
 - `data/output.json` is generated and gitignored. GitHub Actions uploads it to Supabase Storage bucket `heatmap-data` (public) after each successful run.
-- `DATA_URL` in `docs/sp500-heatmap.html` must be updated to the real Supabase project URL before going live.
+- `DATA_URL` in `docs/sp500-heatmap.html` must match the real Supabase project URL.
 - The HTML uses `fetch()` with `?v=timestamp` + `cache: 'no-store'` for cache busting (Supabase CDN + browser cache).
+- `prices.ytd_start` in `config.json` must be updated each January (e.g., `"2026-01-01"` → `"2027-01-01"`).
