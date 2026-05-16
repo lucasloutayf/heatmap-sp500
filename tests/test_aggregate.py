@@ -18,7 +18,6 @@ class TestWriteOutputsNoDataJs(unittest.TestCase):
             cfg = {
                 "output": {
                     "json_path": f"{tmpdir}/output.json",
-                    "cache_dir": f"{tmpdir}/cache",
                     "news_in_output": 5,
                 }
             }
@@ -46,7 +45,6 @@ class TestWriteOutputsNoDataJs(unittest.TestCase):
             cfg = {
                 "output": {
                     "json_path": f"{tmpdir}/output.json",
-                    "cache_dir": f"{tmpdir}/cache",
                     "news_in_output": 5,
                 }
             }
