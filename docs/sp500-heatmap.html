@@ -459,8 +459,9 @@
 const DATA_URL = "https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/heatmap-data/output.json";
 
 async function loadData(bustCache = true) {
-  const url = bustCache ? `${DATA_URL}?v=${Date.now()}` : DATA_URL;
-  const res = await fetch(url, { cache: 'no-store' });
+  const url     = bustCache ? `${DATA_URL}?v=${Date.now()}` : DATA_URL;
+  const options = bustCache ? { cache: 'no-store' } : {};
+  const res = await fetch(url, options);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
@@ -827,6 +828,9 @@ function applySort(key) {
 (async function init() {
   const grid  = document.getElementById('sector-grid');
   const badge = document.getElementById('update-badge');
+  const nowBtn = document.getElementById('reload-now-btn');
+
+  if (nowBtn) nowBtn.disabled = true;
 
   grid.innerHTML = `
     <div class="no-data-state" style="grid-column:1/-1">
@@ -845,6 +849,7 @@ function applySort(key) {
         <p style="margin-top:16px;font-size:12px;color:var(--text-dim)">Verificá tu conexión o que el bucket <code>heatmap-data</code> sea público.</p>
       </div>`;
     if (badge) badge.textContent = '⚠ Error al cargar datos';
+    if (nowBtn) nowBtn.disabled = false;
     return;
   }
 
@@ -944,6 +949,7 @@ function applySort(key) {
       checkForUpdates();
     });
 
+    if (nowBtn) nowBtn.disabled = false;
     scheduleNext();
   })();
 })();
