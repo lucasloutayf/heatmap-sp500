@@ -873,9 +873,13 @@ function applySort(key) {
     const INTERVAL_SECONDS = 300;
     const TOAST_HIDE_MS    = 5000;
 
+    const LS_KEY = 'heatmap_next_check_at';
+
     let _lastUpdatedAt = meta.updated_at ?? null;
-    let _countdown     = INTERVAL_SECONDS;
     let _countdownTimer;
+    const _savedNext = parseInt(localStorage.getItem(LS_KEY) || '0', 10);
+    const _remaining = Math.ceil((_savedNext - Date.now()) / 1000);
+    let _countdown = (_remaining > 0 && _remaining <= INTERVAL_SECONDS) ? _remaining : INTERVAL_SECONDS;
     let _checkPending  = false;
     let _toastTimer;
 
@@ -932,6 +936,7 @@ function applySort(key) {
 
     function scheduleNext() {
       _countdown = INTERVAL_SECONDS;
+      localStorage.setItem(LS_KEY, Date.now() + INTERVAL_SECONDS * 1000);
       clearInterval(_countdownTimer);
       _countdownTimer = setInterval(function() {
         _countdown--;
