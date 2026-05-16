@@ -98,7 +98,7 @@ def main():
             }
 
     # ── Step 4: Agregación y escritura ────────────────────────────────────
-    logger.info("PASO 4/4 — Generando output.json y data.js...")
+    logger.info("PASO 4/4 — Generando output.json...")
     try:
         from pipeline.aggregate import build_output, write_outputs
         output = build_output(cfg, prices_result, news_result, sentiment_results)

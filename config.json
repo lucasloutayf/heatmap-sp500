@@ -106,7 +106,6 @@
   "indices": ["SPY", "QQQ", "IWM"],
   "output": {
     "json_path": "data/output.json",
-    "js_path":   "data/data.js",
     "cache_dir": "data/cache",
     "news_in_output": 5
   }

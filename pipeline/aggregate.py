@@ -1,6 +1,6 @@
 """
 Combina los resultados de fetch_prices, fetch_news y sentiment en output.json.
-También escribe data/data.js para que el HTML lo consuma sin servidor (file://).
+El HTML consume output.json via fetch() desde Supabase Storage.
 Nunca lanza excepciones: los fallos quedan en warnings[] y run_status.
 """
 import json
@@ -194,26 +194,9 @@ def build_output(cfg: dict,
 
 
 def write_outputs(data: dict, cfg: dict):
-    """
-    Escribe data/output.json (legible) y data/data.js (consumido por el HTML).
-    data.js usa window.SP500_DATA para funcionar sin servidor (file:// protocol).
-    """
-    # output.json
+    """Escribe data/output.json. Consumido por el HTML via fetch() desde Supabase Storage."""
     json_path = Path(cfg["output"]["json_path"])
     json_path.parent.mkdir(parents=True, exist_ok=True)
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     logger.info(f"Escrito: {json_path}")
-
-    # data.js
-    js_path = Path(cfg["output"]["js_path"])
-    js_path.parent.mkdir(parents=True, exist_ok=True)
-    json_inline = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    js_content  = (
-        f"// Auto-generado por aggregate.py — {data['meta']['updated_at']}\n"
-        f"// NO editar manualmente\n"
-        f"window.SP500_DATA = {json_inline};\n"
-    )
-    with open(js_path, "w", encoding="utf-8") as f:
-        f.write(js_content)
-    logger.info(f"Escrito: {js_path}")
