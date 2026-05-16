@@ -11,6 +11,7 @@ jobs:
   pipeline:
     runs-on: ubuntu-latest
     environment: production
+    timeout-minutes: 30
 
     env:
       HF_HUB_CACHE: /home/runner/.cache/huggingface/hub
@@ -30,6 +31,7 @@ jobs:
         with:
           path: ${{ env.HF_HUB_CACHE }}
           key: hf-${{ hashFiles('config.json') }}
+          restore-keys: hf-
 
       - name: Install dependencies
         run: pip install -r requirements.txt
