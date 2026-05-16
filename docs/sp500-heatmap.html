@@ -7,8 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <!-- data.js es generado por run_all.py — expone window.SP500_DATA -->
-  <script src="data/data.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -458,6 +456,15 @@
      Actualizar manualmente si cambian posiciones relevantes en los ETFs.
      ═══════════════════════════════════════════════════════════════════════════ -->
 <script>
+const DATA_URL = "https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/heatmap-data/output.json";
+
+async function loadData(bustCache = true) {
+  const url = bustCache ? `${DATA_URL}?v=${Date.now()}` : DATA_URL;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 const STATIC = {
   XLK:  { holdings:[{n:'Apple',t:'AAPL',w:22.1},{n:'NVIDIA',t:'NVDA',w:18.7},{n:'Microsoft',t:'MSFT',w:17.2},{n:'Broadcom',t:'AVGO',w:5.1},{n:'AMD',t:'AMD',w:3.4}], cap:{mega:72,large:24,mid:4} },
   XLF:  { holdings:[{n:'Berkshire Hath.',t:'BRK.B',w:13.2},{n:'JPMorgan Chase',t:'JPM',w:11.8},{n:'Visa',t:'V',w:8.7},{n:'Mastercard',t:'MA',w:7.1},{n:'Bank of America',t:'BAC',w:4.9}], cap:{mega:28,large:62,mid:10} },
@@ -817,50 +824,51 @@ function applySort(key) {
 
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 
-(function init() {
-  const grid = document.getElementById('sector-grid');
+(async function init() {
+  const grid  = document.getElementById('sector-grid');
   const badge = document.getElementById('update-badge');
 
-  if (!window.SP500_DATA) {
+  grid.innerHTML = `
+    <div class="no-data-state" style="grid-column:1/-1">
+      <h2>Cargando datos...</h2>
+      <p>Obteniendo datos desde Supabase Storage.</p>
+    </div>`;
+
+  let data;
+  try {
+    data = await loadData();
+  } catch (err) {
     grid.innerHTML = `
       <div class="no-data-state" style="grid-column:1/-1">
-        <h2>Datos no disponibles</h2>
-        <p>El archivo <code>data/data.js</code> no existe todavía.</p>
-        <p>Ejecutá <code>python run_all.py</code> o doble clic en <code>actualizar.bat</code> para generar los datos.</p>
-        <p style="margin-top:16px;font-size:12px;color:var(--text-dim)">El pipeline descargará precios, noticias y calculará sentimiento con FinBERT.</p>
+        <h2>Error al cargar datos</h2>
+        <p>No fue posible obtener <code>output.json</code> desde Supabase Storage.</p>
+        <p style="margin-top:16px;font-size:12px;color:var(--text-dim)">Verificá tu conexión o que el bucket <code>heatmap-data</code> sea público.</p>
       </div>`;
-    if (badge) badge.textContent = '⚠ Sin datos — ejecutar pipeline primero';
+    if (badge) badge.textContent = '⚠ Error al cargar datos';
     return;
   }
 
-  const data   = window.SP500_DATA;
   const meta   = data.meta || {};
   const status = meta.run_status || 'unknown';
 
-  // Update badge
   if (badge) {
-    const dt = meta.updated_at ? meta.updated_at.replace('T',' ').slice(0,16) : '—';
-    const statusEl = `<span class="run-status-badge ${status}">${status}</span>`;
-    badge.innerHTML = `&#128197; ${dt} ${statusEl}`;
+    const dt = meta.updated_at ? meta.updated_at.replace('T', ' ').slice(0, 16) : '—';
+    badge.innerHTML = `&#128197; ${dt} <span class="run-status-badge ${status}">${status}</span>`;
   }
 
-  // Render indices
   renderIndices(data.indices || {});
-
-  // Render sectors
   allSectors = data.sectors || [];
   applySort('ytd');
 
-  // Wire sort buttons
   document.querySelectorAll('.sort-btn').forEach(btn => {
     btn.addEventListener('click', () => applySort(btn.dataset.sort));
   });
-  // ── Auto-reload ──────────────────────────────────────────────────────────
+
   (function() {
-    const INTERVAL_SECONDS = 300; // 5 minutes between checks
+    const INTERVAL_SECONDS = 300;
     const TOAST_HIDE_MS    = 5000;
 
-    let _lastUpdatedAt = window.SP500_DATA ? window.SP500_DATA.meta.updated_at : null;
+    let _lastUpdatedAt = meta.updated_at ?? null;
     let _countdown     = INTERVAL_SECONDS;
     let _countdownTimer;
     let _checkPending  = false;
@@ -870,9 +878,8 @@ function applySort(key) {
     const elStatus    = document.getElementById('reload-status');
     const elNow       = document.getElementById('reload-now-btn');
 
-    // ── Toast helpers ─────────────────────────────────────────────────────
     function showToast(msg) {
-      let toast = document.getElementById('update-toast');
+      const toast = document.getElementById('update-toast');
       if (!toast) return;
       toast.querySelector('.toast-msg').textContent = msg;
       toast.classList.add('visible');
@@ -880,54 +887,35 @@ function applySort(key) {
       _toastTimer = setTimeout(() => toast.classList.remove('visible'), TOAST_HIDE_MS);
     }
 
-    // ── Dynamic script injection (works on file://) ───────────────────────
-    function checkForUpdates() {
+    async function checkForUpdates() {
       if (_checkPending) return;
       _checkPending = true;
       setStatus('Verificando...');
-
-      const old = document.getElementById('_data_reload');
-      if (old) old.parentNode.removeChild(old);
-
-      const s = document.createElement('script');
-      s.id  = '_data_reload';
-      s.src = 'data/data.js?_=' + Date.now();
-
-      s.onload = function() {
-        _checkPending = false;
-        const newTs = window.SP500_DATA ? window.SP500_DATA.meta.updated_at : null;
+      try {
+        const freshData = await loadData();
+        const newTs = freshData?.meta?.updated_at ?? null;
         if (newTs && newTs !== _lastUpdatedAt) {
           _lastUpdatedAt = newTs;
-          // Re-render in-place
-          try {
-            const data = window.SP500_DATA;
-            renderIndices(data.indices || {});
-            allSectors = data.sectors || [];
-            applySort(currentSort);
-            const _badge = document.getElementById('update-badge');
-            if (_badge) {
-              const _dt = (data.meta.updated_at || '').replace('T',' ').slice(0,16);
-              const _st = data.meta.run_status || 'success';
-              _badge.innerHTML = `&#128197; ${_dt} <span class="run-status-badge ${_st}">${_st}</span>`;
-            }
-            setStatus('Actualizado', true);
-            showToast('Datos actualizados · ' + (data.meta.updated_at || '').replace('T',' ').slice(11,16));
-          } catch(e) {
-            setStatus('Error al renderizar');
+          renderIndices(freshData.indices || {});
+          allSectors = freshData.sectors || [];
+          applySort(currentSort);
+          const _badge = document.getElementById('update-badge');
+          if (_badge) {
+            const _dt = (freshData.meta.updated_at || '').replace('T', ' ').slice(0, 16);
+            const _st = freshData.meta.run_status || 'success';
+            _badge.innerHTML = `&#128197; ${_dt} <span class="run-status-badge ${_st}">${_st}</span>`;
           }
+          setStatus('Actualizado', true);
+          showToast('Datos actualizados · ' + (freshData.meta.updated_at || '').replace('T', ' ').slice(11, 16));
         } else {
           setStatus('Sin cambios');
         }
-        scheduleNext();
-      };
-
-      s.onerror = function() {
-        _checkPending = false;
+      } catch (e) {
         setStatus('Error de lectura');
+      } finally {
+        _checkPending = false;
         scheduleNext();
-      };
-
-      document.head.appendChild(s);
+      }
     }
 
     function setStatus(txt, highlight) {
@@ -956,10 +944,8 @@ function applySort(key) {
       checkForUpdates();
     });
 
-    // Kick off
     scheduleNext();
   })();
-
 })();
 </script>
 
